@@ -23,6 +23,7 @@ readonly YELLOW="\033[00;33m"
 readonly BOLD="\033[01m"
 readonly FINE="\033[0m"
 
+#take an hidden value you need for send the POST request to A/I
 take_hidden(){
 wget -q --user-agent Mozilla/5.0 --keep-session-cookies --save-cookies cookies.txt -O login.html https://vpn.autistici.org/
 _csrf=`grep _csrf  < login.html |tr '=' " " |awk '{print$7}' |sed s/\"//g |rev |cut -c 2- |rev`
@@ -31,19 +32,23 @@ if [ `echo $_csrf |grep "+"` ]; then
 fi
 }
 
+#ask for password and send  login request
 login(){
-data="username=$1&password=$2&_csrf=${_csrf}"
+echo insert password
+read -s pass
+data="username=$1&password=$pass&_csrf=${_csrf}"
 wget  --keep-session-cookies  --load-cookies cookies.txt --save-cookies cookies.txt --header="Accept: text/html" --user-agent Mozilla/5.0  --post-data "$data" -O newcert.html https://vpn.autistici.org/login
 dwl=`grep url=/newcert < newcert.html |awk '{print$4}'|sed 's/\;/\&/' |cut -c 6- |rev|cut -c 3- |rev`
 }
 
+#download file using login cookies and delete all junks file
 download(){
 wget -q --user-agent Mozilla/5.0 --content-disposition --keep-session-cookies --load-cookies cookies.txt  "http://vpn.autistici.org/$dwl" -L
 rm -rf cookies.txt newcert.html index.html login.html
 }
 
-if  [ -z "$1" ] || [ -z "$2" ]; then
-	echo  "Usage: AI_Download_VPN [mail] [password]"
+if  [ -z "$1" ]; then
+	echo  "Usage: AI_Download_VPN [mail]"
 else
 	echo -e $BLUE"taking _csrf value.."$FINE
 	take_hidden

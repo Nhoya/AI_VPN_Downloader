@@ -1,0 +1,60 @@
+#!/bin/bash
+#
+#		Copyright (C) Nhoya.
+#
+#   AI_VPN_Downloader is free software: you can redistribute it and/or modify
+#   it under the terms of the GNU General Public License as published by
+#   the Free Software Foundation, either version 3 of the License, or
+#   (at your option) any later version.
+#
+#   This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#   GNU General Public License for more details.
+#
+#   You should have received a copy of the GNU General Public License
+#   along with this program.  If not, see <http://www.gnu.org/licenses/>
+
+#text clours
+readonly RED="\033[01;31m"
+readonly GREEN="\033[01;32m"
+readonly BLUE="\033[01;34m"
+readonly YELLOW="\033[00;33m"
+readonly BOLD="\033[01m"
+readonly FINE="\033[0m"
+
+take_hidden(){
+wget -q --user-agent Mozilla/5.0 --keep-session-cookies --save-cookies cookies.txt -O login.html https://vpn.autistici.org/
+_csrf=`grep _csrf  < login.html |tr '=' " " |awk '{print$7}' |sed s/\"//g |rev |cut -c 2- |rev`
+if [ `echo $_csrf |grep "+"` ]; then
+	take_hidden $_csrf
+fi
+}
+
+login(){
+data="username=$1&password=$2&_csrf=${_csrf}"
+wget  --keep-session-cookies  --load-cookies cookies.txt --save-cookies cookies.txt --header="Accept: text/html" --user-agent Mozilla/5.0  --post-data "$data" -O newcert.html https://vpn.autistici.org/login
+dwl=`grep url=/newcert < newcert.html |awk '{print$4}'|sed 's/\;/\&/' |cut -c 6- |rev|cut -c 3- |rev`
+}
+
+download(){
+wget -q --user-agent Mozilla/5.0 --content-disposition --keep-session-cookies --load-cookies cookies.txt  "http://vpn.autistici.org/$dwl" -L
+rm -rf cookies.txt newcert.html index.html login.html
+}
+
+if  [ -z "$1" ] || [ -z "$2" ]; then
+	echo  "Usage: AI_Download_VPN [mail] [password]"
+else
+	echo -e $BLUE"taking _csrf value.."$FINE
+	take_hidden
+	echo -e $BLUE"login in"$FINE
+	login $1 $2 $_csrf
+	echo -e $BLUE"Downloading files"$FINE
+	download
+	if ls |grep -q .zip; then
+		echo -e $GREEN"Download Complete"$FINE
+	else
+		echo -e $RED"An error Occurred, check credentials or website status"$FINE
+	fi
+fi
+
